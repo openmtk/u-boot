@@ -6,6 +6,7 @@
 #define LOG_CATEGORY	UCLASS_SYSINFO
 
 #include <bloblist.h>
+#include <cb_sysinfo.h>
 #include <command.h>
 #include <cros_ec.h>
 #include <dm.h>
@@ -17,7 +18,7 @@
 #include <acpi/acpigen.h>
 #include <asm-generic/gpio.h>
 #include <asm/acpi_nhlt.h>
-#include <asm/cb_sysinfo.h>
+#include <asm/intel_gnvs.h>
 #include <asm/intel_pinctrl.h>
 #include <dm/acpi.h>
 #include <linux/delay.h>
