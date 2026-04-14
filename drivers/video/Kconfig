@@ -911,6 +911,15 @@ source "drivers/video/tegra/Kconfig"
 
 source "drivers/video/imx/Kconfig"
 
+config VIDEO_MTKFB
+	bool "Enable video support on MediaTek SoC"
+	depends on ARCH_MEDIATEK
+	imply VIDEO_DAMAGE
+	help
+	  Enable framebuffer driver for Mediatek SoCs (e.g. google,navi
+	  Chromebook). The driver expects coreboot to have already
+	  configured the display pipeline.
+
 config VIDEO_MXS
 	bool "Enable video support on i.MX28/i.MX6UL/i.MX7 SoCs"
 	depends on MACH_IMX
