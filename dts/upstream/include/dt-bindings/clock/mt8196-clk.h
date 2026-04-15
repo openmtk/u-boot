@@ -295,7 +295,8 @@
 #define CLK_CK2_TVDPLL3_D4				82
 #define CLK_CK2_TVDPLL3_D8				83
 #define CLK_CK2_TVDPLL3_D16				84
-#define CLK_CK2_NR_CLK					85
+#define CLK_CK2_TVDPLL1_D2				85
+#define CLK_CK2_NR_CLK					86
 
 /* APMIXEDSYS_GP2 */
 #define CLK_APMIXED2_MAINPLL2				0
