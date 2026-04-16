@@ -27,28 +27,6 @@
 #define DVO0_BASE		0x324C0000UL
 #define DVO_PATTERN_CTRL	(DVO0_BASE + 0x100)
 
-#define GPIO_BASE		0x1002D000UL
-#define GPIO_DIR_SET(reg)	(GPIO_BASE + 0x000 + (reg) * 16 + 4)
-#define GPIO_DOUT_SET(reg)	(GPIO_BASE + 0x100 + (reg) * 16 + 4)
-
-/* GPIO(103) => (3 * 32) + 7 */
-#define GPIO_BL_PWM_REG		3
-#define GPIO_BL_PWM_BIT		(1U << 7)
-
-/* GPIO(216) => (6 * 32) + 24 */
-#define GPIO_BKLTEN_REG		6
-#define GPIO_BKLTEN_BIT		(1U << 24)
-
-
-static void mtk_backlight_enable(void)
-{
-	writel(GPIO_BKLTEN_BIT, GPIO_DIR_SET(GPIO_BKLTEN_REG));
-	writel(GPIO_BKLTEN_BIT, GPIO_DOUT_SET(GPIO_BKLTEN_REG));
-
-	writel(GPIO_BL_PWM_BIT, GPIO_DIR_SET(GPIO_BL_PWM_REG));
-	writel(GPIO_BL_PWM_BIT, GPIO_DOUT_SET(GPIO_BL_PWM_REG));
-}
-
 static void mtk_exdma_configure(ulong fb_pa, ulong fb_size)
 {
 	flush_dcache_range(fb_pa, fb_pa + fb_size);
@@ -78,7 +56,6 @@ static int mtk_video_probe(struct udevice *dev)
 	uc_priv->ysize = FB_HEIGHT;
 	uc_priv->bpix  = VIDEO_BPP32; /* XRGB8888 */
 
-	mtk_backlight_enable();
 	mtk_exdma_configure(uc_plat->base, uc_plat->size);
 
 	/* Clear hardware test pattern */

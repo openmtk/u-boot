@@ -19,6 +19,18 @@
 		bootargs = "arm64.nomte cpuidle.governor=teo irqchip.gicv3_pseudo_nmi=1";
 	};
 
+	aliases {
+		video0 = &display_debug;
+	};
+
+	display_debug: display-debug {
+		compatible = "mediatek,mt8196-display-debug";
+		status = "okay";
+		bootph-all;
+		pinctrl-names = "default";
+		pinctrl-0 = <&backlight_pins>;
+	};
+
 	backlight: backlight {
 		compatible = "pwm-backlight";
 		pinctrl-names = "default";
@@ -1273,6 +1285,20 @@
 
 		bt-kill {
 			pinmux = <PINMUX_GPIO248__FUNC_GPIO248>;
+			output-high;
+		};
+	};
+
+	backlight_pins: backlight-pins {
+		bootph-all;
+		pins-bl-en {
+			bootph-all;
+			pinmux = <PINMUX_GPIO216__FUNC_GPIO216>;
+			output-high;
+		};
+		pins-bl-pwm {
+			bootph-all;
+			pinmux = <PINMUX_GPIO103__FUNC_GPIO103>;
 			output-high;
 		};
 	};

@@ -116,14 +116,6 @@
 		spi7 = &spi7;
 		tdshp0 = &disp_tdshp0;
 		vdisp-ao = &disp_vdisp_ao_config_clk;
-		video0 = &display_debug;
-	};
-
-	display_debug: display-debug {
-		compatible = "mediatek,mt8196-display-debug";
-		status = "okay";
-
-		bootph-all;
 	};
 
 	cpus {
