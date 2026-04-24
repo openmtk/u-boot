@@ -25,7 +25,7 @@ static int read_dbg2(struct ns16550_plat *plat)
 	u32 *addr_size;
 
 	log_debug("Looking for DBG2 in ACPI tables\n");
-	if (!gd->acpi_start) {
+	if (!gd_acpi_start()) {
 		log_debug("No ACPI tables\n");
 		return -ENOENT;
 	}
