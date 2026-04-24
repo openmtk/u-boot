@@ -13,6 +13,7 @@
 #include <key_matrix.h>
 #include <log.h>
 #include <stdio_dev.h>
+#include <sysreset.h>
 
 enum {
 	KBC_MAX_KEYS		= 8,	/* Maximum keys held down at once */
@@ -51,6 +52,20 @@ static int check_for_keys(struct udevice *dev, struct key_matrix_key *keys,
 	unsigned int row, col, bit, data;
 	int num_keys;
 	int ret;
+
+	/* Power button on ChromeOS doesn't come through as an MKBP
+	 * event on this class of EC; mirror depthcharge and poll the
+	 * switches byte in the EC memmap region. Long-press force-off
+	 * stays owned by the EC hardware. */
+	{
+		u8 sw;
+
+		if (cros_ec_read_switches(dev->parent, &sw) == 0 &&
+		    (sw & EC_SWITCH_POWER_BUTTON_PRESSED)) {
+			printf("\nPower button pressed, shutting down.\n");
+			sysreset_walk_halt(SYSRESET_POWER_OFF);
+		}
+	}
 
 	/* Get pending MKBP event. It may not be a key matrix event. */
 	do {

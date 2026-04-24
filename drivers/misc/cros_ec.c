@@ -719,6 +719,38 @@ int cros_ec_get_host_events(struct udevice *dev, uint32_t *events_ptr)
 	return 0;
 }
 
+/*
+ * Read a single byte from the EC's memmap region. On SPI/I2C ECs this goes
+ * through EC_CMD_READ_MEMMAP; on LPC ECs the region is directly addressable
+ * but that path isn't wired up here yet.
+ */
+static int cros_ec_read_memmap_u8(struct udevice *dev, u8 offset, u8 *out)
+{
+	struct ec_params_read_memmap p = {
+		.offset = offset,
+		.size = sizeof(*out),
+	};
+
+	if (ec_command(dev, EC_CMD_READ_MEMMAP, 0, &p, sizeof(p),
+		       out, sizeof(*out)) != (int)sizeof(*out))
+		return -1;
+	return 0;
+}
+
+int cros_ec_read_switches(struct udevice *dev, u8 *flags)
+{
+	u8 version;
+
+	/* version byte reads as 0 until the EC has populated the
+	 * switches region; ignore the switches byte if so. */
+	if (cros_ec_read_memmap_u8(dev, EC_MEMMAP_SWITCHES_VERSION, &version))
+		return -1;
+	if (!version)
+		return -1;
+
+	return cros_ec_read_memmap_u8(dev, EC_MEMMAP_SWITCHES, flags);
+}
+
 int cros_ec_clear_host_events(struct udevice *dev, uint32_t events)
 {
 	struct ec_params_host_event_mask params;

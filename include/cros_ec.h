@@ -175,6 +175,19 @@ int cros_ec_info(struct udevice *dev, struct ec_response_mkbp_info *info);
 int cros_ec_get_host_events(struct udevice *dev, uint32_t *events_ptr);
 
 /**
+ * cros_ec_read_switches() - Read the EC switches byte.
+ *
+ * Reads EC_MEMMAP_SWITCHES after verifying the EC's memmap data has been
+ * initialized (SWITCHES_VERSION != 0). The returned bitmask contains
+ * EC_SWITCH_LID_OPEN, EC_SWITCH_POWER_BUTTON_PRESSED, etc.
+ *
+ * @dev: EC device
+ * @flags: On success, receives the switches bitmask.
+ * Return: 0 on success, -1 on error or if the region is not yet populated.
+ */
+int cros_ec_read_switches(struct udevice *dev, u8 *flags);
+
+/**
  * Clear the specified host event flags
  *
  * @param dev		CROS-EC device
