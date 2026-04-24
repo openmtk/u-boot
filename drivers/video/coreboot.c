@@ -8,6 +8,8 @@
 #include <init.h>
 #include <vesa.h>
 #include <video.h>
+#include <asm/cache.h>
+#include <asm/system.h>
 
 static int save_vesa_mode(struct cb_framebuffer *fb,
 			  struct vesa_mode_info *vesa)
@@ -64,6 +66,28 @@ static int coreboot_video_probe(struct udevice *dev)
 
 	printf("%dx%dx%d\n", uc_priv->xsize, uc_priv->ysize,
 	       vesa->bits_per_pixel);
+
+	/*
+	 * Map the framebuffer as cacheable write-back and have the
+	 * video uclass flush its cache lines on every sync. Writing
+	 * through D-cache makes vidconsole operations (scroll, glyph
+	 * fill) fast, and the post-sync flush pushes the pixels out to
+	 * DRAM so the display engine sees them. Doing it in the driver
+	 * makes the FB attributes independent of how the board set up
+	 * its overall mem_map.
+	 */
+	if (IS_ENABLED(CONFIG_MMU) && vesa->phys_base_ptr) {
+		ulong fb_start, fb_end;
+		ulong fb_size = (ulong)vesa->bytes_per_scanline *
+				vesa->y_resolution;
+
+		fb_start = vesa->phys_base_ptr & ~(MMU_SECTION_SIZE - 1);
+		fb_end = ALIGN(vesa->phys_base_ptr + fb_size,
+			       MMU_SECTION_SIZE);
+		mmu_set_region_dcache_behaviour(fb_start, fb_end - fb_start,
+						DCACHE_WRITEBACK);
+	}
+	video_set_flush_dcache(dev, true);
 
 	return 0;
 
