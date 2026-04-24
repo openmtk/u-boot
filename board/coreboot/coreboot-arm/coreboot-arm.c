@@ -1,43 +1,39 @@
-#include <asm/armv8/mmu.h>
-#include <asm/io.h>
 #include <cb_sysinfo.h>
-#include <mapmem.h>
+#include <cpu_func.h>
+#include <log.h>
 
-#define MAX_MEM_MAP_REGIONS 16
-
-static struct mm_region
-    coreboot_mem_map[MAX_MEM_MAP_REGIONS] __section(".data") = {0};
-struct mm_region *mem_map = coreboot_mem_map;
-
-int dram_init(void) {
+int dram_init(void)
+{
 	return coreboot_dram_init();
 }
 
-phys_addr_t board_get_usable_ram_top(phys_size_t total_size) {
+phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
+{
 	return coreboot_board_get_usable_ram_top(total_size);
 }
 
-int dram_init_banksize(void) {
+int dram_init_banksize(void)
+{
 	return coreboot_dram_init_banksize();
 }
 
-void reset_cpu(void) { /* Stub */ };
+#if !IS_ENABLED(CONFIG_SYSRESET)
+/* When SYSRESET is enabled, the uclass provides reset_cpu(). */
+void reset_cpu(void) { /* Stub */ }
+#endif
 
-int board_init(void) {
-  printf("board_init().\n");
-  // sc7180 display
-  /*
-  writel(0x1, 0x0AE6B800);
-  lib_sysinfo.framebuffer->physical_address = readl(0x0AE05014);
-  */
-  return 0;
+int board_init(void)
+{
+	return 0;
 }
 
-int board_late_init(void) {
-  log_err("board_late_init().\n");
-  return 0;
+int board_late_init(void)
+{
+	return 0;
 }
 
-void enable_caches() {
-    log_err("skip enable_caches().\n");
+void enable_caches(void)
+{
+	icache_enable();
+	dcache_enable();
 }

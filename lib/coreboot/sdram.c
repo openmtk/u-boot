@@ -7,9 +7,86 @@
 
 #include <init.h>
 #include <cb_sysinfo.h>
+#include <errno.h>
+#include <linux/sizes.h>
 #include <asm/global_data.h>
+#ifdef CONFIG_ARM64
+#include <asm/armv8/mmu.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_ARM64
+/*
+ * ARM64 coreboot-payload boards all need an mm_region table to turn
+ * on the MMU. Rather than each board building its own, provide a
+ * generic one here that gets populated during coreboot_dram_init()
+ * from the sysinfo memrange walk. Boards just reference the mem_map
+ * symbol and call icache_enable() / dcache_enable() from their
+ * enable_caches().
+ *
+ * Emits exactly two regions plus a sentinel:
+ *
+ *   1. MT_DEVICE_NGNRNE for [0x1000, lowest RAM). Catches SoC MMIO
+ *      without each board enumerating it. Page 0 stays unmapped so
+ *      NULL-pointer accesses trap.
+ *
+ *   2. MT_NORMAL (cacheable, inner-shareable) from lowest RAM to
+ *      highest RAM end. CB_MEM_RAM, CB_MEM_TABLE and CB_MEM_TAG are
+ *      all physically RAM and share this single span; reserved holes
+ *      inside DRAM (BL31, TEE, etc.) are harmless to map cacheable
+ *      and collapsing into one span keeps the page tables compact on
+ *      boards with many separate RAM ranges.
+ */
+/*
+ * Force into .data: this gets populated in coreboot_dram_init()
+ * which runs pre-relocation, and U-Boot zeroes .bss again after
+ * relocation. A .bss-resident mem_map would lose its contents and
+ * dcache_enable() would map nothing.
+ */
+static struct mm_region coreboot_mem_map[3] __section(".data");
+struct mm_region *mem_map = coreboot_mem_map;
+
+static bool coreboot_is_ram_type(unsigned int type)
+{
+	return type == CB_MEM_RAM || type == CB_MEM_TABLE ||
+	       type == CB_MEM_TAG;
+}
+
+static void coreboot_fill_mem_map(u64 lowest, u64 highest_end)
+{
+	coreboot_mem_map[0].virt = SZ_4K;
+	coreboot_mem_map[0].phys = SZ_4K;
+	coreboot_mem_map[0].size = lowest - SZ_4K;
+	coreboot_mem_map[0].attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+				    PTE_BLOCK_NON_SHARE |
+				    PTE_BLOCK_PXN | PTE_BLOCK_UXN;
+
+	coreboot_mem_map[1].virt = lowest;
+	coreboot_mem_map[1].phys = lowest;
+	coreboot_mem_map[1].size = highest_end - lowest;
+	coreboot_mem_map[1].attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+				    PTE_BLOCK_INNER_SHARE;
+
+	/* Sentinel is already zero-initialised by BSS. */
+}
+
+/*
+ * The generic get_page_table_size() walks mem_map and sums up the
+ * page tables every region needs. The Device region we emit starts
+ * at 0x1000 (to keep NULL-pointer accesses unmapped), which forces
+ * subdivision down to 4K granularity at the bottom of the address
+ * space. The computation gets pathological on boards with multi-GB
+ * physical RAM and we end up either reserving an absurd amount of
+ * RAM for page tables or crashing arch_reserve_mmu() outright.
+ * Override with a fixed 1 MB instead, the same approach
+ * mach-snapdragon uses.
+ */
+u64 get_page_table_size(void)
+{
+	return SZ_1M;
+}
+#endif /* CONFIG_ARM64 */
 
 /*
  * This function looks for the highest region of memory lower than 4GB which
@@ -58,6 +135,10 @@ int coreboot_dram_init(void)
 	int i;
 	phys_size_t ram_base = ~0UL;
 	phys_size_t ram_size = 0;
+#ifdef CONFIG_ARM64
+	u64 mmu_lowest = ~0ULL;
+	u64 mmu_highest_end = 0;
+#endif
 
 	for (i = 0; i < lib_sysinfo.n_memranges; i++) {
 		struct memrange *memrange = &lib_sysinfo.memrange[i];
@@ -69,12 +150,32 @@ int coreboot_dram_init(void)
 			if (end > ram_size)
 				ram_size += memrange->size;
 		}
+
+#ifdef CONFIG_ARM64
+		/*
+		 * Track the physical span of everything RAM-like (RAM,
+		 * coreboot tables, tag storage) so the ARM64 mem_map can
+		 * cover it all as a single MT_NORMAL region, without needing
+		 * a second pass over the memrange list.
+		 */
+		if (coreboot_is_ram_type(memrange->type)) {
+			if (memrange->base < mmu_lowest)
+				mmu_lowest = memrange->base;
+			if (end > mmu_highest_end)
+				mmu_highest_end = end;
+		}
+#endif
 	}
 
 	gd->ram_base = ram_base;
 	gd->ram_size = ram_size;
 	if (ram_size == 0)
 		return -1;
+
+#ifdef CONFIG_ARM64
+	if (mmu_lowest != ~0ULL)
+		coreboot_fill_mem_map(mmu_lowest, mmu_highest_end);
+#endif
 
 	return 0;
 }
