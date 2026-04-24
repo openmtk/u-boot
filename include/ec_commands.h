@@ -2997,6 +2997,12 @@ enum ec_mkbp_event {
 	EC_MKBP_EVENT_COUNT,
 };
 
+/* Top bit of the 8-bit event_type: set when more events follow in the
+ * EC FIFO. The low 7 bits are the actual event type. */
+#define EC_MKBP_HAS_MORE_EVENTS_SHIFT	7
+#define EC_MKBP_HAS_MORE_EVENTS		BIT(EC_MKBP_HAS_MORE_EVENTS_SHIFT)
+#define EC_MKBP_EVENT_TYPE_MASK		(BIT(EC_MKBP_HAS_MORE_EVENTS_SHIFT) - 1)
+
 union __ec_align_offset1 ec_response_get_next_data {
 	uint8_t key_matrix[13];
 

@@ -60,7 +60,8 @@ static int check_for_keys(struct udevice *dev, struct key_matrix_key *keys,
 			return -EIO;
 		else if (ret)
 			break;
-	} while (event.event_type != EC_MKBP_EVENT_KEY_MATRIX);
+	} while ((event.event_type & EC_MKBP_EVENT_TYPE_MASK) !=
+		 EC_MKBP_EVENT_KEY_MATRIX);
 
 	/* Try the old command if the EC doesn't support the above. */
 	if (ret == -EC_RES_INVALID_COMMAND) {
