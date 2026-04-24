@@ -148,6 +148,7 @@ struct cb_memory_range {
 #define CB_MEM_UNUSABLE			5
 #define CB_MEM_VENDOR_RSVD		6
 #define CB_MEM_TABLE			16
+#define CB_MEM_TAG			17
 
 struct cb_memory {
 	u32 tag;
