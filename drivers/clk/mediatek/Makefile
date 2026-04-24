@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 # Core
 obj-$(CONFIG_ARCH_MEDIATEK) += clk-mtk.o
+obj-$(CONFIG_CLK_MT8196) += clk-mtk.o
 
 # SoC Drivers
 obj-$(CONFIG_TARGET_MT7623) += clk-mt7623.o
@@ -14,7 +15,7 @@ obj-$(CONFIG_TARGET_MT8183) += clk-mt8183.o
 obj-$(CONFIG_TARGET_MT8188) += clk-mt8188.o
 obj-$(CONFIG_TARGET_MT8189) += clk-mt8189.o
 obj-$(CONFIG_TARGET_MT8195) += clk-mt8195.o
-obj-$(CONFIG_TARGET_MT8196) += clk-mt8196.o
+obj-$(CONFIG_CLK_MT8196) += clk-mt8196.o
 obj-$(CONFIG_TARGET_MT8365) += clk-mt8365.o
 obj-$(CONFIG_TARGET_MT8512) += clk-mt8512.o
 obj-$(CONFIG_TARGET_MT8516) += clk-mt8516.o

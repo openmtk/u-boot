@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0+
+
+config CLK_MT8196
+	bool "Mediatek MT8196 clock driver"
+	depends on CLK
+	default y if TARGET_MT8196
+	help
+	  Enable the MediaTek MT8196 (Kompanio Ultra 910) clock driver.
+	  Required for boards using the MT8196 SoC where U-Boot needs to
+	  bind clocks for SoC peripherals (USB host, SPI, MMC, ...).
