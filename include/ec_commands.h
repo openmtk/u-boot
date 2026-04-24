@@ -3004,7 +3004,14 @@ enum ec_mkbp_event {
 #define EC_MKBP_EVENT_TYPE_MASK		(BIT(EC_MKBP_HAS_MORE_EVENTS_SHIFT) - 1)
 
 union __ec_align_offset1 ec_response_get_next_data {
-	uint8_t key_matrix[13];
+	/*
+	 * Sized to the largest keyboard matrix any current ChromeOS EC
+	 * is built for, so the V3 response layout (cmd_version=3) fits.
+	 * Older ECs reply with fewer bytes; cros_ec_get_next_event()
+	 * accepts short replies and the consumer iterates only as many
+	 * bytes as its DT-configured matrix size requires.
+	 */
+	uint8_t key_matrix[18];
 
 	/* Unaligned */
 	uint32_t host_event;

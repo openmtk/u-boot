@@ -425,11 +425,33 @@ int cros_ec_get_next_event(struct udevice *dev,
 {
 	int ret;
 
-	ret = ec_command(dev, EC_CMD_GET_NEXT_EVENT, 0, NULL, 0,
-			 event, sizeof(*event));
+	/*
+	 * Prefer command version 3, which makes the EC return the v3
+	 * response layout with an 18-byte key_matrix. V0 only carries
+	 * 13 bytes, which loses Ctrl/Alt/Fn on modern matrices
+	 * (CROS_*_KEYMAP_V30). Older ECs reject unknown versions with
+	 * EC_RES_INVALID_VERSION, so fall back to v0 and remember the
+	 * choice so we don't retry every poll.
+	 */
+	static int next_event_cmd_version = 3;
+
+	ret = ec_command(dev, EC_CMD_GET_NEXT_EVENT, next_event_cmd_version,
+			 NULL, 0, event, sizeof(*event));
+	if (ret == -EC_RES_INVALID_VERSION && next_event_cmd_version != 0) {
+		next_event_cmd_version = 0;
+		ret = ec_command(dev, EC_CMD_GET_NEXT_EVENT, 0, NULL, 0,
+				 event, sizeof(*event));
+	}
 	if (ret < 0)
 		return ret;
-	else if (ret != sizeof(*event))
+	/*
+	 * The EC fills the response with whatever its native matrix
+	 * size is, which may be smaller than sizeof(*event). Accept
+	 * any reply that at least carries an event_type byte; the
+	 * keyboard driver iterates only as many bytes as its DT-
+	 * configured matrix size requires.
+	 */
+	if (ret < (int)sizeof(event->event_type))
 		return -EC_RES_INVALID_RESPONSE;
 
 	return 0;

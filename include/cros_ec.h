@@ -37,11 +37,12 @@ struct cros_ec_dev {
 };
 
 /*
- * Hard-code the number of columns we happen to know we have right now.  It
- * would be more correct to call cros_ec_info() at startup and determine the
- * actual number of keyboard cols from there.
+ * Maximum number of columns we can read from the EC's MKBP key
+ * matrix. Modern ChromeOS keyboard matrices (CROS_*_KEYMAP_V30 and
+ * later) place Ctrl, Alt and Fn at columns 13..17, so the buffer
+ * needs to be at least 18 to deliver modifiers to the input layer.
  */
-#define CROS_EC_KEYSCAN_COLS 13
+#define CROS_EC_KEYSCAN_COLS 18
 
 /* Information returned by a key scan */
 struct mbkp_keyscan {
