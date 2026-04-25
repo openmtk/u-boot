@@ -1,0 +1,98 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * U-Boot-side overlay for mt8196-rauru-navi-sku1 when running as a
+ * coreboot payload. Adds placeholder nodes for drivers that take
+ * their config from the coreboot sysinfo table (serial, framebuffer)
+ * and patches the upstream kernel DT in the few places where U-Boot
+ * needs a slightly different shape.
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/input/cros-ec-keyboard.h>
+#include <dt-bindings/pinctrl/mt8196-pinfunc.h>
+
+/ {
+	/*
+	 * Placeholder; the driver pulls base / clock / regwidth from
+	 * the coreboot LB_TAG_SERIAL sysinfo entry.
+	 */
+	serial {
+		bootph-all;
+		compatible = "coreboot-serial";
+	};
+
+	/*
+	 * coreboot-fb pulls FB base + geometry from coreboot sysinfo.
+	 * bootph-some-ram so DM binds it pre-relocation, which the
+	 * video uclass requires to reserve the framebuffer at the
+	 * right point in init.
+	 */
+	coreboot-fb {
+		bootph-some-ram;
+		compatible = "coreboot-fb";
+	};
+};
+
+&chosen {
+	stdout-path = "serial:115200n8";
+};
+
+/*
+ * Coreboot has already brought up the SSUSB PHYs and SSUSB power
+ * domain. The phys point at a "mediatek,xsphy" parent that has no
+ * U-Boot driver, and the power-domain phandle points at an mt8196
+ * scpsys node with no U-Boot driver either; without deleting those
+ * refs the xhci-mtk probe blows up looking them up. vbus-supply on
+ * xhci0 is pp5000_usb (regulator-fixed gated by pio pin 28) and is
+ * fine to keep; on xhci1 it's an mt6373 PMIC rail we don't bind.
+ */
+&xhci0 {
+	/delete-property/ phys;
+	/delete-property/ power-domains;
+};
+
+&xhci1 {
+	/delete-property/ phys;
+	/delete-property/ power-domains;
+	/delete-property/ vbus-supply;
+};
+
+/*
+ * mtk_chromeos_spi drives CS as a plain GPIO (cs-gpios) since the
+ * controller can't hold native CS across multiple xfer calls the way
+ * cros-ec needs. Pull the CS pad out of native SPI mux and into GPIO
+ * mode via a U-Boot-only pinctrl group, and add the cs-gpios property
+ * pointing at pio pin 111 (GPIO111 = SPI1_CSB).
+ */
+&pio {
+	spi1_cs_gpio_pins: spi1-cs-gpio-pins {
+		pins-cs {
+			pinmux = <PINMUX_GPIO110__FUNC_SPI1_CLK>,
+				 <PINMUX_GPIO111__FUNC_GPIO111>,
+				 <PINMUX_GPIO112__FUNC_SPI1_MO>,
+				 <PINMUX_GPIO113__FUNC_SPI1_MI>;
+			bias-disable;
+		};
+	};
+};
+
+&spi1 {
+	pinctrl-0 = <&spi1_cs_gpio_pins>;
+	cs-gpios = <&pio 111 GPIO_ACTIVE_LOW>;
+};
+
+/*
+ * The EC on this board sends 18 columns (cols 13..17 carry Ctrl,
+ * Alt, Fn and the JIS/ISO keys). Bump the controller width and
+ * swap to the V30 keymap so modifiers reach the input layer.
+ */
+&keyboard_controller {
+	keypad,num-columns = <18>;
+	/delete-property/ linux,keymap;
+	linux,keymap = <
+		CROS_TOP_ROW_KEYMAP_V30
+		CROS_MAIN_KEYMAP_V30
+	>;
+};
+
