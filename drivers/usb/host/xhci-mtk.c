@@ -245,16 +245,16 @@ static int xhci_mtk_ldos_enable(struct mtk_xhci *mtk)
 {
 	int ret;
 
-	ret = regulator_set_enable(mtk->vusb33_supply, true);
-	if (ret < 0 && ret != -ENOSYS) {
+	ret = regulator_set_enable_if_allowed(mtk->vusb33_supply, true);
+	if (ret) {
 		dev_err(mtk->dev, "failed to enable vusb33 %d!\n", ret);
 		return ret;
 	}
 
-	ret = regulator_set_enable(mtk->vbus_supply, true);
-	if (ret < 0 && ret != -ENOSYS) {
+	ret = regulator_set_enable_if_allowed(mtk->vbus_supply, true);
+	if (ret) {
 		dev_err(mtk->dev, "failed to enable vbus %d!\n", ret);
-		regulator_set_enable(mtk->vusb33_supply, false);
+		regulator_set_enable_if_allowed(mtk->vusb33_supply, false);
 		return ret;
 	}
 
