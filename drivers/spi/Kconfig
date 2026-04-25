@@ -371,6 +371,19 @@ config MTK_SPIM
 	  supports SPI flashes. You can use single, dual or quad mode
 	  transmission on this controller.
 
+config MTK_CHROMEOS_SPI
+	bool "Mediatek SPI master driver for ChromeOS payload (mt8196)"
+	depends on DM_SPI && DM_GPIO
+	help
+	  Plain (non-SPI-MEM) MediaTek SPI master, derived from coreboot's
+	  src/soc/mediatek/common/spi.c. Used for talking to the Chrome EC
+	  over SPI from a coreboot payload running on a MediaTek Chromebook
+	  (mt8196 etc.). Coreboot has already programmed pads, source clocks,
+	  divisor and SCK timing by the time the payload runs, so the driver
+	  only programs PACKET_LEN, fills the TX FIFO, fires ACT or RESUME,
+	  and polls status. CS is driven via cs-gpios + the standard GPIO
+	  uclass; pinctrl puts the CS pad in GPIO mode.
+
 config MVEBU_A3700_SPI
 	bool "Marvell Armada 3700 SPI driver"
 	depends on ARCH_MVEBU && ARM64
